@@ -24,13 +24,15 @@ async fn main() {
     loop {
         let (mut socket, addr) = listener.accept().await.unwrap();
         let addr_string = addr.to_string();
+        println!("{addr_string}");
         
         let shared_map = shared_map.clone();
         tokio::spawn(async move {
 
-            let mut map = shared_map.lock().await;
             let mut buf = [0; 4096];
             loop {
+                let mut map = shared_map.lock().await;
+                println!("{addr_string} READ");
                 let n = match socket.read(&mut buf).await {
                     Ok(n) if n == 0 => { return; },
                     Ok(n) => n,
@@ -41,7 +43,7 @@ async fn main() {
                 };
                 let serialized_data = &buf[..n];
                 let data: TetrisData = serde_json::from_slice(serialized_data).unwrap();
-                println!("{}: {:?}",addr_string, data);
+                // println!("{}: {:?}",addr_string, data);
                 map.insert(addr_string.clone(), data.clone());
 
                 let empty_data = TetrisData {
@@ -56,8 +58,10 @@ async fn main() {
                         break;
                     }
                 }
+                println!("{addr_string} WRITE");
                 socket.write_all(serialized_data.as_bytes()).await.unwrap();
                 println!("{}: {}",addr_string, data.score);
+
             }
             // socket.shutdown().await.unwrap();
 
