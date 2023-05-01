@@ -1,4 +1,7 @@
 use std::error::Error;
+use std::fs::OpenOptions;
+use std::io::BufWriter;
+use std::io::prelude::*;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::io::{AsyncWriteExt, AsyncReadExt};
 use serde::{Serialize, Deserialize};
@@ -10,6 +13,13 @@ use std::sync::Arc;
 struct TetrisData {
     map: [[usize; 10]; 20], // 10x20 map
     score: usize, // current score
+}
+
+fn write_to_file(data: String) {
+    let file = OpenOptions::new().create(true).append(true).open("./logs.txt").unwrap();
+    let mut writer = BufWriter::new(file);
+    writer.write_all(data.as_bytes());
+    writer.flush();
 }
 
 #[tokio::main]
@@ -43,7 +53,7 @@ async fn main() {
                 };
                 let serialized_data = &buf[..n];
                 let data: TetrisData = serde_json::from_slice(serialized_data).unwrap();
-                // println!("{}: {:?}",addr_string, data);
+                write_to_file(format!("{}: {}\n", addr_string, data.score));
                 map.insert(addr_string.clone(), data.clone());
 
                 let empty_data = TetrisData {
